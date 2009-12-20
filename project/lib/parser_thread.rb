@@ -48,8 +48,15 @@ class ParserThread
         return
       end
 
+
+
+
+#      hier ist der fehler, das wird falsch erkannt
+
+
       # check, whether fields of activity follows events immediately: then, it is empty
-      if @content[/<strong>&nbsp;&nbsp;Events:<\/strong><br><br>\s*<table border="0" cellpadding="0" cellspacing="1">\s*<\/table>\s*<\/td>\s*<td width="70%" valign="top">\s*<table BORDER=0 CELLSPACING=0 COLS=2 WIDTH="100%" BGCOLOR="#EEEEEE" >\s*<tr>\s*<td BGCOLOR="#AEFFAE">\s*<center>\s*<font face="Arial,Helvetica" size=-2>Fields of activity:<\/font>/]
+      if @content[/<strong>&nbsp;&nbsp;Events:<\/strong><br><br>\s*<table border="0" cellpadding="0" cellspacing="1">\s*<\/table>/]
+#\s*<\/td>\s*<td width="70%" valign="top">\s*<table BORDER=0 CELLSPACING=0 COLS=2 WIDTH="100%" BGCOLOR="#EEEEEE" >\s*<tr>\s*<td BGCOLOR="#AEFFAE">\s*<center>\s*<font face="Arial,Helvetica" size=-2>Fields of activity:<\/font>/]
         puts "Law #{@lawID} is empty. (Contains no values)"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
         return
@@ -87,7 +94,7 @@ class ParserThread
       arrayEntry[Configuration::ID] = @lawID
 
     rescue Exception => ex
-      puts "EXCEPTION"
+      puts "EXCEPTION in law ##{@lawID}"
       puts ex.message
       puts ex.class
       puts ex.backtrace

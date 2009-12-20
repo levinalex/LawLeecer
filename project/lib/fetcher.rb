@@ -90,6 +90,20 @@ class Fetcher
 
   # retrieves the details for each law by startin threads for each law
   def Fetcher.retrieveLawContents lawIDs
+    ######################################################
+    # interesting debug position
+    #
+    # set this array to something different (e.g., some special law ids you want
+    # to examine) to debug
+    #
+    # examples (one of):
+    # lawIDs = [197729, 154298, 154182]
+    # lawIDs = [154182]
+    # lawIDs = [197729]
+    #######################################################
+    # lawIDs = [something]
+
+
     # total number of laws to retrieve
     overalNumberOfLaws = lawIDs.size
 
@@ -140,8 +154,17 @@ class Fetcher
       results << threadResult unless threadResult.nil?
     }
 
+    # remove all remaining empty laws which are represented as Fixnums rather
+    # than being hashes with all the parsed information
+    results = results.select {|law| law.class != Fixnum}
+
     # extract the keys of the timeline hash in all of the crawled laws (used for creating the header line in the export file)r
-    timelineKeys, results = extractTimelineKeysFromCrawledLaws results
+#    begin
+      timelineKeys = extractTimelineKeysFromCrawledLaws results
+#    rescue
+#      puts "Something went terribly wrong during timeline calculation for all the retrieved laws, maybe one law was unsupposedly empty?"
+#      exit
+#    end
 
     # extract the keys of the first box hash in all of the crawled laws (used for creating the header line in the export file)r
     firstboxKeys = extractfirstboxKeysFromCrawledLaws results
@@ -174,6 +197,7 @@ class Fetcher
     # at the same time, a list of all the values has also to be tracked, e.g. ["abc001", "xxx001", "abc002"]
 
     results.each { |law|
+
       # this is the temporary storage of timelineKey names ("abc001", ...)
       timelineKeysUsedInThisLaw = []
       timeline = law[Configuration::TIMELINE]
@@ -204,7 +228,7 @@ class Fetcher
 
     timelineKeys.sort!
 
-    return timelineKeys, results
+    return timelineKeys
   end
 
 
@@ -229,6 +253,7 @@ class Fetcher
     # at the same time, a list of all the values has also to be tracked, e.g. ["abc001", "xxx001", "abc002"]
 
     results.each { |law|
+
       # this is the temporary storage of timelineKey names ("abc001", ...)
       firstboxHash = law[Configuration::FIRSTBOX]
       # save the used timeline titles in the global list, so that the export file header can display it

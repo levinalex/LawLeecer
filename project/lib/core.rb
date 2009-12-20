@@ -52,6 +52,8 @@ class Core
     @@numberOfResults = laws.size
 
     Saver.save laws, timelineTitles, firstboxKeys
+
+    puts 'Finished.'
   end
 
 
