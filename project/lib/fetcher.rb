@@ -57,7 +57,8 @@ class Fetcher
       # there are two ways to check it, we use both for safety reasons
 
       if content[/The document is not available in PreLex./]
-        raise 'There are no laws on this page.'
+        Configuration.log_verbose('There are no laws on this page.')
+        next
       end
 
       lastEntryOnPage = content[/\d{1,5}\/\d{1,5}(?=<\/div>\s*<\/TD>\s*<\/TR>\s*<TR bgcolor=\"#(ffffcc|ffffff)\">\s*<TD colspan=\"2\" VALIGN=\"top\">\s*<FONT CLASS=\"texte\">.*<\/FONT>\s*<\/TD>\s*<\/TR>\s*<\/table>\s*<center>\s*<TABLE border=0 cellpadding=0 cellspacing=0>\s*<tr align=\"center\">\s*<\/tr>\s*<\/table>\s*<\/center>\s*<!-- BOTTOM NAVIGATION BAR)/]
