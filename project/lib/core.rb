@@ -53,7 +53,7 @@ class Core
 
     Saver.save laws, timelineTitles, firstboxKeys
 
-    puts 'Finished.'
+    Configuration.log_default 'Finished'
   end
 
 
@@ -62,7 +62,7 @@ class Core
 
   # callback to the gui and/or the terminal
   def callback bunchOfInformation
-    puts bunchOfInformation['status'] if bunchOfInformation.has_key?('status')
+#    #$stderr.print bunchOfInformation['status'] + "\n" if bunchOfInformation.has_key?('status')
     GUI.createInstance.updateWidgets(bunchOfInformation) if Configuration.guiEnabled
   end
 

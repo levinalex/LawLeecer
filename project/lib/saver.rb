@@ -31,8 +31,7 @@ class Saver
     begin
       Iconv.new('iso-8859-1', 'utf-8').iconv(string)
     rescue Iconv::IllegalSequence => is
-      puts "law ##{law}: Unicode character conversion error: #{is.message}"
-      puts "Writing it inconverted"
+      $stderr.puts "#{law}: Unicode character conversion error: #{is.message}, printing it unconverted"
       return string
     end
   end
@@ -44,7 +43,7 @@ class Saver
   # saves the results into a file
   def Saver.save laws, timelineTitles, firstboxKeys
     Core.createInstance.callback({'status' => "Speichere in #{Configuration.filename}..."})
-
+    Configuration.log_verbose "Saving to #{Configuration.filename}"
 
     # to see all conversation errors, uncomment the following line
     # laws.each { |law| convertUTF8ToANSI(law.inspect, law[Configuration::ID])}
@@ -131,7 +130,8 @@ class Saver
     end
 
   rescue Exception => ex
-    puts "Exception: #{ex}"
+    $stderr.puts "Exception: #{ex}"
     Core.createInstance.callback({'status' => "Datei #{Configuration.filename} konnte nicht geöffnet werden. Wird sie von einem anderen Programm benutzt?"})
+    Configuration.log_default "File #{Configuration.filename} could not be opened, is it already open? Exiting."
   end
 end

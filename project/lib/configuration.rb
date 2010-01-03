@@ -138,7 +138,51 @@ class Configuration # and settings
 
   # version of the program
   def Configuration.version
-    '1.2'
+    '1.3'
+  end
+
+
+
+
+
+  # how much information to print on console
+  # can be:
+  # verbose
+  VERBOSE = 2
+  # default
+  DEFAULT = 1
+  # quiet
+  QUIET = 0
+  def Configuration.loglevel= level
+    @@loglevel = level
+  end
+
+
+
+
+
+  # getter for the log level
+  @@loglevel = Configuration::DEFAULT
+  def Configuration.loglevel
+    @@loglevel
+  end
+
+
+
+
+
+  # print something when being verbose
+  def Configuration.log_verbose message
+    print "#{message}\n" if Configuration.loglevel >= Configuration::VERBOSE
+  end
+
+
+
+
+
+  # print something when being verbose
+  def Configuration.log_default message
+    print "#{message}\n" if Configuration.loglevel >= Configuration::DEFAULT
   end
 
 
@@ -146,7 +190,7 @@ class Configuration # and settings
 
 
   # number of parser threads to use
-  @@numberOfParserThreads = 8
+  @@numberOfParserThreads = 20
   def Configuration.numberOfParserThreads
     @@numberOfParserThreads
   end

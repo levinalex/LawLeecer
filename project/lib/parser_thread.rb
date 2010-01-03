@@ -27,6 +27,8 @@ class ParserThread
   # does the overall parsing task
   def retrieveAndParseALaw lawID
     @lawID = lawID
+    Configuration.log_verbose "#{@lawID}: start"
+
     begin # start try block
 
       response = fetch("http://ec.europa.eu/prelex/detail_dossier_real.cfm?CL=en&DosId=#{@lawID}")
@@ -37,27 +39,20 @@ class ParserThread
 
       # check, whether some specific errors occured
       if @content[/<H1>Database Error<\/H1>/]
-        puts "Law #{@lawID} is empty. (Produces a data base error)"
+        $stderr.print "#{@lawID}: is empty. (Produces a data base error)\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
         return
       end
 
       if @content[/<H1>Unexpected Error<\/H1>/]
-        puts "Law #{@lawID} is empty. (Produces an \"unexpected error\")"
+        $stderr.print "#{@lawID}: is empty. (Produces an \"unexpected error\")\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
         return
       end
 
-
-
-
-#      hier ist der fehler, das wird falsch erkannt
-
-
       # check, whether fields of activity follows events immediately: then, it is empty
       if @content[/<strong>&nbsp;&nbsp;Events:<\/strong><br><br>\s*<table border="0" cellpadding="0" cellspacing="1">\s*<\/table>/]
-#\s*<\/td>\s*<td width="70%" valign="top">\s*<table BORDER=0 CELLSPACING=0 COLS=2 WIDTH="100%" BGCOLOR="#EEEEEE" >\s*<tr>\s*<td BGCOLOR="#AEFFAE">\s*<center>\s*<font face="Arial,Helvetica" size=-2>Fields of activity:<\/font>/]
-        puts "Law #{@lawID} is empty. (Contains no values)"
+        $stderr.print "#{@lawID}: is empty. (Contains no values)\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
         return
       end
@@ -94,22 +89,26 @@ class ParserThread
       arrayEntry[Configuration::ID] = @lawID
 
     rescue Exception => ex
-      puts "EXCEPTION in law ##{@lawID}"
-      puts ex.message
-      puts ex.class
-      puts ex.backtrace
+      $stderr.puts "EXCEPTION in law ##{@lawID}"
+      $stderr.puts ex.message
+      $stderr.puts ex.class
+      $stderr.puts ex.backtrace
 
       if ex.class == Errno::ECONNRESET or ex.class == Timeout::Error or ex.class == EOFError
-        puts "Zeitüberschreitung bei Gesetz ##{@lawID}. Starte dieses Gesetz nochmal von vorne."
+        Configuration.log_verbose "#{@lawID}: timeout, starting this law again"
         retry
+#      elsif ex.class == Net::HTTPBadResponse
+#        Configuration.log_verbose "#{@lawID}: bad HTTP response, stating this law again"
+#        retry
       elsif ex.message == 'empty law'
-        puts "Gesetz #{@lawID} scheint leer zu sein. Dieses Gesetz wird ignoriert."
+        Configuration.log_verbose "#{@lawID}: empty, will be ignored"
       else
-        puts "Es gab einen echten Fehler mit Gesetz ##{@lawID}. Dieses Gesetz wird ignoriert."
-        return @lawID
+        Configuration.log_verbose "#{@lawID}: error, will be ignored"
+        #return @lawID
       end
     end #of exception handling
 
+    Configuration.log_verbose "#{@lawID}: end"
     return arrayEntry
   end
 

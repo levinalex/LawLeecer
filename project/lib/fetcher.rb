@@ -36,6 +36,7 @@ class Fetcher
     lawIDs = []
 
     Core.createInstance.callback({'status' => 'Frage alle Gesetze an. Das kann durchaus mal zwei Minuten oder mehr dauern.'})
+    Configuration.log_default "Listing all available laws for the specified time range..."
 
     # retrieve all laws separately by year
     (Configuration.startYear..Time.now.year).each { |year|
@@ -46,7 +47,8 @@ class Fetcher
       http.read_timeout = 300
       http.open_timeout = 300
 
-      Core.createInstance.callback({'status' => "Emfange Gesetze aus dem Jahr #{year}..."})
+      Core.createInstance.callback({'status' => "Suche Gesetze für das Jahr #{year}..."})
+      Configuration.log_verbose "Listing laws for year #{year}..."
       response = http.post('/prelex/liste_resultats.cfm?CL=en', "doc_typ=&docdos=dos&requete_id=0&clef1=&doc_ann=&doc_num=&doc_ext=&clef4=&clef2=#{year}&clef3=&LNG_TITRE=EN&titre=&titre_boolean=&EVT1=&GROUPE1=&EVT1_DD_1=&EVT1_MM_1=&EVT1_YY_1=&EVT1_DD_2=&EVT1_MM_2=&EVT1_YY_2=&event_boolean=+and+&EVT2=&GROUPE2=&EVT2_DD_1=&EVT2_MM_1=&EVT2_YY_1=&EVT2_DD_2=&EVT2_MM_2=&EVT2_YY_2=&EVT3=&GROUPE3=&EVT3_DD_1=&EVT3_MM_1=&EVT3_YY_1=&EVT3_DD_2=&EVT3_MM_2=&EVT3_YY_2=&TYPE_DOSSIER=&NUM_CELEX_TYPE=&NUM_CELEX_YEAR=&NUM_CELEX_NUM=&BASE_JUR=&DOMAINE1=&domain_boolean=+and+&DOMAINE2=&COLLECT1=&COLLECT1_ROLE=&collect_boolean=+and+&COLLECT2=&COLLECT2_ROLE=&PERSON1=&PERSON1_ROLE=&person_boolean=+and+&PERSON2=&PERSON2_ROLE=&nbr_element=#{Configuration.numberOfMaxHitsPerPage.to_s}&first_element=1&type_affichage=1")
       content = response.body
 
@@ -81,6 +83,7 @@ class Fetcher
       lawIDs.concat additionalLawIDs
     }
     Core.createInstance.callback({'status' => "#{lawIDs.size} Gesetze gefunden"})
+    Configuration.log_default "#{lawIDs.size} laws found"
     return lawIDs
   end
 
@@ -90,6 +93,8 @@ class Fetcher
 
   # retrieves the details for each law by startin threads for each law
   def Fetcher.retrieveLawContents lawIDs
+    Configuration.log_default "Starting to retrieve details for each law"
+
     ######################################################
     # interesting debug position
     #
@@ -135,11 +140,13 @@ class Fetcher
         # start a new thread
         theLawToProcess = lawIDs.shift
 
+      	Configuration.log_default "#{lawIDs.size} laws left" if (lawIDs.size % 100 == 0 and lawIDs.size > 0)
+
         threads << Thread.new {
           parserThread = ParserThread.new
           parserThread.retrieveAndParseALaw theLawToProcess
         }
-        Core.createInstance.callback({'progressBarIncrement' => progressBarIncrement, 'progressBarText' => "#{overalNumberOfLaws - lawIDs.size}/#{overalNumberOfLaws} Gesetze verarbeitet"})
+        Core.createInstance.callback({'progressBarIncrement' => progressBarIncrement, 'status' => "#{overalNumberOfLaws - lawIDs.size}/#{overalNumberOfLaws} Gesetze verarbeitet", 'progressBarText' => "#{(overalNumberOfLaws - lawIDs.size) * 100 / overalNumberOfLaws} %"})
       else
         # do not create a new thread now, instead wait a bit
         sleep 0.1
@@ -148,7 +155,7 @@ class Fetcher
 
 
     # catch all remaining threads here
-    puts "no more laws left, waiting for threads to finish"
+    Configuration.log_default "No more laws left, waiting for threads to finish."
     threads.each {|thread|
       threadResult = thread.value
       results << threadResult unless threadResult.nil?
@@ -156,15 +163,10 @@ class Fetcher
 
     # remove all remaining empty laws which are represented as Fixnums rather
     # than being hashes with all the parsed information
-    results = results.select {|law| law.class != Fixnum}
+    results = results.select {|law| law.class != Fixnum or law.class != String}
 
     # extract the keys of the timeline hash in all of the crawled laws (used for creating the header line in the export file)r
-#    begin
-      timelineKeys = extractTimelineKeysFromCrawledLaws results
-#    rescue
-#      puts "Something went terribly wrong during timeline calculation for all the retrieved laws, maybe one law was unsupposedly empty?"
-#      exit
-#    end
+    timelineKeys = extractTimelineKeysFromCrawledLaws results
 
     # extract the keys of the first box hash in all of the crawled laws (used for creating the header line in the export file)r
     firstboxKeys = extractfirstboxKeysFromCrawledLaws results

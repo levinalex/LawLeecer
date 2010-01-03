@@ -41,30 +41,47 @@ if (ARGV.member? "--nogui")
       argument = argument.gsub /--startyear=/, ''
       if argument.nil? or argument.empty? then break end
       argument = argument.to_i
-      Configuration.startYear = argument if argument > Configuration.startYear and argument <= Time.now.year
-      puts "Start year set to #{Configuration.startYear}"
+      if argument > Configuration.startYear and argument <= Time.now.year
+        Configuration.startYear = argument
+        Configuration.log_verbose "Start year set to #{Configuration.startYear}"
+      else
+        Configuration.log_default "Warning: desired start year (#{argument}) is in the future. Using #{Configuration.startYear} instead."
+      end
 
     when /--numberofthreads=.+/
       argument = argument.gsub /--numberofthreads=/, ''
       if argument.nil? or argument.empty? then break end
       argument = argument.to_i
       Configuration.numberOfParserThreads = argument if argument >= 1 and argument < 100
-      puts "Number of threads set to #{Configuration.numberOfParserThreads}"
+      Configuration.log_verbose  "Number of threads set to #{Configuration.numberOfParserThreads}"
 
     when /--filename=.+/
-      argument = argument.gsub /--filename=/, ''
+      argument.gsub! /--filename=/, ''
       Configuration.filename = argument unless argument.nil? or argument.empty?
-      puts "Filename set to #{Configuration.filename}"
+      Configuration.log_verbose "Filename set to #{Configuration.filename}"
 
     when /--overwriteexistingfile/
       Configuration.overwritePermission = true
-      puts "Overwrite existing file set to #{Configuration.overwritePermission}"
+      Configuration.log_verbose "Overwrite existing file set to #{Configuration.overwritePermission}"
+
+    when /--loglevel=.+/
+      argument = argument.gsub /--loglevel=/, ''
+      Configuration.loglevel = case argument
+        when /verbose/i then Configuration::VERBOSE
+        when /default/i then Configuration::DEFAULT
+        when /quiet/i then Configuration::QUIET
+        else begin
+          $stderr.puts "Unrecognized log level \"#{argument}\". Exiting."
+          exit
+        end
+      end
+      Configuration.log_verbose "Log level set to #{Configuration.loglevel}"
 
     when /--nogui/
       # this parameter is OK, but leave it here for readability
 
     else
-      puts "Unknown command line parameter: \"#{argument}\". Exiting."
+      $stderr.puts "Unknown command line parameter: \"#{argument}\". Exiting."
       exit
     end
   }
