@@ -138,7 +138,7 @@ class Configuration # and settings
 
   # version of the program
   def Configuration.version
-    '1.3'
+    '1.3.1'
   end
 
 

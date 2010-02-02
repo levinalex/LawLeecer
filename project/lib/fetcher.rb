@@ -96,6 +96,15 @@ class Fetcher
   def Fetcher.retrieveLawContents lawIDs
     Configuration.log_default "Starting to retrieve details for each law"
 
+    #      #####        #####        #####
+    #      #   #        #   #        #   #
+    #      #   #        #   #        #   #
+    #      #   #        #   #        #   #
+    #    ###   ###    ###   ###    ###   ###
+    #     #     #      #     #      #     #
+    #      #   #        #   #        #   #
+    #       # #          # #          # #
+    #        #            #            #
     ######################################################
     # interesting debug position
     #
@@ -108,7 +117,6 @@ class Fetcher
     # lawIDs = [197729]
     #######################################################
     # lawIDs = [something]
-
 
     # total number of laws to retrieve
     overalNumberOfLaws = lawIDs.size

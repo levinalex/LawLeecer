@@ -45,9 +45,16 @@ class Core
   def startProcess
     lawIDs = Fetcher.retrieveLawIDs()
 
+
+    # remove some duplicate ids here
+    lawIDs.uniq!
+
     @@numberOfLaws = lawIDs.size
 
     laws, timelineTitles, firstboxKeys = Fetcher.retrieveLawContents(lawIDs)
+
+    # due to the threading, there might still be some exact duplicates
+    laws = removeDuplicates laws
 
     @@numberOfResults = laws.size
 
@@ -62,7 +69,6 @@ class Core
 
   # callback to the gui and/or the terminal
   def callback bunchOfInformation
-#    #$stderr.print bunchOfInformation['status'] + "\n" if bunchOfInformation.has_key?('status')
     GUI.createInstance.updateWidgets(bunchOfInformation) if Configuration.guiEnabled
   end
 
@@ -82,5 +88,26 @@ class Core
   # getter for the number of results variable
   def numberOfResults
     @@numberOfResults
+  end
+
+
+
+
+
+  # removes exact duplicates (about 1% of the whole data comes from duplicate entries)
+  # actually, it removes all entries with the same id regardless of the actual attributes
+  # however, all inspected duplicate tuples have been exact duplicates
+  def removeDuplicates laws
+    alreadyFoundLawIDs = []
+    laws.delete_if { |law|
+      id = law[Configuration::ID]
+      if alreadyFoundLawIDs.include? id
+        true
+      else
+        alreadyFoundLawIDs << id
+        false
+      end
+    }
+    return laws
   end
 end

@@ -56,7 +56,7 @@ if (ARGV.member? "--nogui")
       Configuration.log_verbose  "Number of threads set to #{Configuration.numberOfParserThreads}"
 
     when /--filename=.+/
-      argument.gsub! /--filename=/, ''
+      argument = argument.gsub /--filename=/, ''
       Configuration.filename = argument unless argument.nil? or argument.empty?
       Configuration.log_verbose "Filename set to #{Configuration.filename}"
 
@@ -67,10 +67,10 @@ if (ARGV.member? "--nogui")
     when /--loglevel=.+/
       argument = argument.gsub /--loglevel=/, ''
       Configuration.loglevel = case argument
-        when /verbose/i then Configuration::VERBOSE
-        when /default/i then Configuration::DEFAULT
-        when /quiet/i then Configuration::QUIET
-        else begin
+      when /verbose/i then Configuration::VERBOSE
+      when /default/i then Configuration::DEFAULT
+      when /quiet/i then Configuration::QUIET
+      else begin
           $stderr.puts "Unrecognized log level \"#{argument}\". Exiting."
           exit
         end

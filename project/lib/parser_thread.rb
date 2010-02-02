@@ -97,9 +97,9 @@ class ParserThread
       if ex.class == Errno::ECONNRESET or ex.class == Timeout::Error or ex.class == EOFError
         Configuration.log_verbose "#{@lawID}: timeout, starting this law again"
         retry
-#      elsif ex.class == Net::HTTPBadResponse
-#        Configuration.log_verbose "#{@lawID}: bad HTTP response, stating this law again"
-#        retry
+        #      elsif ex.class == Net::HTTPBadResponse
+        #        Configuration.log_verbose "#{@lawID}: bad HTTP response, stating this law again"
+        #        retry
       elsif ex.message == 'empty law'
         Configuration.log_verbose "#{@lawID}: empty, will be ignored"
       else
@@ -185,15 +185,15 @@ class ParserThread
       end
 
       if row[/Procedures/]
-        procedures = parseSimple(/Procedures:<\/font><\/font><\/td>\s*<td VALIGN=TOP><font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font><\/td>\s*<\/tr>)/, rows[2])
+        procedures = parseSimple(/Procedures:<\/font><\/font><\/td>\s*<td VALIGN=TOP><font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font><\/td>\s*<\/tr>)/, row)
       end
 
       if row[/Type of file/]
-        typeOfFile = parseSimple(/Type of file:<\/font><\/font><\/td>\s*<td VALIGN=TOP><font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font><\/td>\s*<\/tr>)/, rows[3])
+        typeOfFile = parseSimple(/Type of file:<\/font><\/font><\/td>\s*<td VALIGN=TOP><font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font><\/td>\s*<\/tr>)/, row)
       end
 
       if row[/NUMERO CELEX/]
-        numeroCelex = parseSimple(/'\)\">\s*<font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font>\s*<\/a>)/, rows[4])
+        numeroCelex = parseSimple(/'\)\">\s*<font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font>\s*<\/a>)/, row)
       end
     }
     return documents, procedures, typeOfFile, numeroCelex
@@ -318,21 +318,48 @@ class ParserThread
       # divide it in cells, but remove the junk before the first cell and also remove the first cell which is always empty
       cells = row.split(/<td/)[2..3]
       key = parseSimple(/VALIGN=TOP><font face="Arial"><font size=-2>/, /.*/, cells.first)
+      valueCell = cells.last
 
       value = Configuration.missingEntry
 
       # if the key is NUMERO CELEX or Documents, special measures have to be taken
       if key[/Documents:/]
         # there can be several documents, thus: split it
-        documents = cells.last.split /<BR>/
+        documents = valueCell.split /<BR>/
         documents.pop # remove junk here
         documents.collect! { |document| parseSimple(/.*<font size=-2>/, /.*(?=<\/font><\/font>\s*(<\/a>)?)/, document)}
         documents = documents.join Configuration.innerSeparator
         value = documents
       elsif key[/NUMERO CELEX/]
-        value = parseSimple(/'\)\">\s*<font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font>\s*<\/a>)/, cells.last)
+        value = parseSimple(/'\)\">\s*<font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font>\s*<\/a>)/, valueCell)
+      elsif key[/Legal basis:/]
+        value = ''
+        # this may contain an (one) <a> element whose textcontent is relevant together with all unlinked text
+        # the link text as well as the text after the possible link is introduced by <font face="Arial"><font size=-2>
+        # that's why this is used as a separator
+
+
+        texts = valueCell.split(/<font face="Arial"><font size=-2>/)[1..-1]
+
+        #        texts.each {|text|
+        #          value += parseSimple(//, /.*(?=<\/font><\/font>.*)/, text) + ' '
+        #        }
+
+        value = texts.map! {|text|
+          parseSimple(//, /.*(?=<\/font><\/font>.*)/, text)
+        }.join Configuration.innerSeparator
+
+        #        if valueCell[/<a href/]
+        #          valueCell.gsub! /<a href=.*?>/, ''
+        #          valueCell.gsub! /<\/a>/, ''
+        #        end
+
+        # if there is a link, there is often also an icon (<img>) which has to be removed
+        #        valueCell.gsub! /<img .*?>/, ''
+
+        #        value = valueCell
       else
-        value = parseSimple(/VALIGN=TOP>\s*<font face="Arial"><font size=-2>/, /.*/, cells.last)
+        value = parseSimple(/VALIGN=TOP>\s*<font face="Arial"><font size=-2>/, /.*/, valueCell)
       end
       tableData[key] = value
     }
