@@ -24,11 +24,16 @@
 
 class ParserThread
 
+  DATABASE_ERROR = 1
+  UNEXPECTED_ERROR = 2
+  EMPTY_LAW_ERROR = 3
+  POSSIBLY_RECOVERABLE_ERROR = 4
+
+
   # does the overall parsing task
   def retrieveAndParseALaw lawID
     @lawID = lawID
     Configuration.log_verbose "#{@lawID}: start"
-
     begin # start try block
 
       response = fetch("http://ec.europa.eu/prelex/detail_dossier_real.cfm?CL=en&DosId=#{@lawID}")
@@ -39,22 +44,23 @@ class ParserThread
 
       # check, whether some specific errors occured
       if @content[/<H1>Database Error<\/H1>/]
-        $stderr.print "#{@lawID}: is empty. (Produces a data base error)\n"
+        $stderr.print "#{@lawID}: is empty. (Produces a database error)\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
-        return
+        return {"error" => DATABASE_ERROR, Configuration::ID => @lawID}
       end
 
+      # check, whether the invocation of the law page displays "unexpected error"
       if @content[/<H1>Unexpected Error<\/H1>/]
         $stderr.print "#{@lawID}: is empty. (Produces an \"unexpected error\")\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
-        return
+        return {"error" => UNEXPECTED_ERROR, Configuration::ID => @lawID}
       end
 
       # check, whether fields of activity follows events immediately: then, it is empty
       if @content[/<strong>&nbsp;&nbsp;Events:<\/strong><br><br>\s*<table border="0" cellpadding="0" cellspacing="1">\s*<\/table>/]
         $stderr.print "#{@lawID}: is empty. (Contains no values)\n"
         Core.createInstance.callback({'status' => "Das Gesetz #{@lawID} kann nicht gelesen werden und wird ignoriert."})
-        return
+        return {"error" => EMPTY_LAW_ERROR, Configuration::ID => @lawID}
       end
 
 
@@ -72,8 +78,11 @@ class ParserThread
       arrayEntry[Configuration::GREENBOX_TYPEOFFILE] = parseSimple(/Type of file:<\/font>\s*<\/center>\s*<\/td>\s*<td BGCOLOR="#FFFFFF">\s*<font face="Arial,Helvetica" size=-2>/, /.*?(?=<\/tr>)/, @content)
 
       # timeline items (timestamp, title, and (if available) decision (mode) value)
-      allTables = @content[/<table BORDER=0 CELLSPACING=0 COLS=2 WIDTH="100%" BGCOLOR="#EEEEEE" >.*<\/td>\s*<\/tr>\s*<\/table>\s*<!-- BOTTOM NAVIGATION BAR -->/m]
-      # separate the tables, each table is an entry in the timeline
+      allTables = @content[/<table BORDER=0 CELLSPACING=0 COLS=2 WIDTH="100%" BGCOLOR="#EEEEEE" >.*<\/table>\s*<\/td>\s*<\/tr>\s*<\/table>\s*<\/TD>\s*<\/TR>\s*<\/TABLE>\s*<!-- BOTTOM NAVIGATION BAR -->/m]
+
+
+
+      # separate the tables, each table is an entry in the timeline (including the green table which will be soon removed)
       allTables = allTables.split(/(?=<table BORDER=0 CELLSPACING=0 WIDTH="100%" BGCOLOR="#.{6}")/)
       # remove the first one (green table)
       allTables.shift
@@ -94,19 +103,8 @@ class ParserThread
       $stderr.puts ex.class
       $stderr.puts ex.backtrace
 
-      if ex.class == Errno::ECONNRESET or ex.class == Timeout::Error or ex.class == EOFError
-        Configuration.log_verbose "#{@lawID}: timeout, starting this law again"
-        retry
-        #      elsif ex.class == Net::HTTPBadResponse
-        #        Configuration.log_verbose "#{@lawID}: bad HTTP response, stating this law again"
-        #        retry
-      elsif ex.message == 'empty law'
-        Configuration.log_verbose "#{@lawID}: empty, will be ignored"
-      else
-        Configuration.log_verbose "#{@lawID}: error, will be ignored"
-        #return @lawID
-      end
-    end #of exception handling
+      return {"error" => POSSIBLY_RECOVERABLE_ERROR, Configuration::ID => @lawID}
+    end
 
     Configuration.log_verbose "#{@lawID}: end"
     return arrayEntry
@@ -136,14 +134,14 @@ class ParserThread
       title = parseSimple(/<td ALIGN=CENTER WIDTH=\"\d+%\" BGCOLOR=\"#.{6}\">\s*<font face=\"Arial\">\s*<font size=-2>\s*<B>/, /.*(?=<\/B>\s*<\/font>\s*<\/font>\s*<\/td>\s*<\/tr>\s*)/, firstRow)
 
 
-      decision = Configuration.missingEntry
+      decision = Configuration::MISSING_ENTRY
       unless rows.empty?
         # the second <tr>... contains "decision" or "decision mode" or none of both
         secondRow = rows.shift
         secondRow.gsub! /<tr>\s*<td width=\"3\">&nbsp;<\/td>\s*<td VALIGN=TOP><font face=\"Arial\"><font size=-2>/, ''
         decision = secondRow[/^Decision (mode)?:/]
         if decision.nil?
-          decision = Configuration.missingEntry
+          decision = Configuration::MISSING_ENTRY
         else
           decision = parseSimple(/<font size=-2>/, /.*<\/font><\/font><\/td>\s*<\/tr>/, secondRow)
         end
@@ -167,10 +165,10 @@ class ParserThread
 
     # if this table is empty, there is only one <tr> holding the table header
 
-    documents = Configuration.missingEntry
-    procedures = Configuration.missingEntry
-    typeOfFile = Configuration.missingEntry
-    numeroCelex = Configuration.missingEntry
+    documents = Configuration::MISSING_ENTRY
+    procedures = Configuration::MISSING_ENTRY
+    typeOfFile = Configuration::MISSING_ENTRY
+    numeroCelex = Configuration::MISSING_ENTRY
 
     rows.each { |row|
       if row[/Documents:/]
@@ -181,7 +179,7 @@ class ParserThread
           parseSimple(/.*<font size=-2>/, /.*(?=<\/font><\/font>\s*(<\/a>)?)/, document)
         }
 
-        documents = documents.join Configuration.innerSeparator
+        documents = documents.join Configuration::INNER_SEPARATOR
       end
 
       if row[/Procedures/]
@@ -240,6 +238,7 @@ class ParserThread
     when Net::HTTPSuccess then response
     when Net::HTTPRedirection then fetch(response['location'], limit - 1)
     else
+      $stderr.puts "FEHLER, gleich gehts rund bei #{@lawID}: #{response}"
       response.error!
     end
   end
@@ -257,7 +256,7 @@ class ParserThread
       raise if type.empty?
     rescue
       # this law does not have "type" data
-      type = Configuration.missingEntry
+      type = Configuration::MISSING_ENTRY
     end
     return type
   end
@@ -268,7 +267,7 @@ class ParserThread
 
   # since ruby 1.8.6 cannot handle positive look-behinds, the crawling is two-stepped
 
-  #   a general method to extract pieces of a long string (simulating multilength look-behinds)
+  #   a general method to extract pieces of a long string (simulating variable length look-behinds)
   #     extracts a substring out of a given string
   #     i.e.: result = string[/(?<=noise1)substring(?=noise2)/m]
   #
@@ -291,9 +290,8 @@ class ParserThread
       result = string[regexp]
       result.gsub! Regexp.new(beforePattern.source, Regexp::MULTILINE), ''
       result = clean(result)
-      raise if result.empty?
     rescue
-      result = Configuration.missingEntry
+      result = Configuration::MISSING_ENTRY
     end
     return result
   end
@@ -320,7 +318,7 @@ class ParserThread
       key = parseSimple(/VALIGN=TOP><font face="Arial"><font size=-2>/, /.*/, cells.first)
       valueCell = cells.last
 
-      value = Configuration.missingEntry
+      value = Configuration::MISSING_ENTRY
 
       # if the key is NUMERO CELEX or Documents, special measures have to be taken
       if key[/Documents:/]
@@ -328,7 +326,7 @@ class ParserThread
         documents = valueCell.split /<BR>/
         documents.pop # remove junk here
         documents.collect! { |document| parseSimple(/.*<font size=-2>/, /.*(?=<\/font><\/font>\s*(<\/a>)?)/, document)}
-        documents = documents.join Configuration.innerSeparator
+        documents = documents.join Configuration::INNER_SEPARATOR
         value = documents
       elsif key[/NUMERO CELEX/]
         value = parseSimple(/'\)\">\s*<font face=\"Arial\"><font size=-2>/, /.*(?=<\/font><\/font>\s*<\/a>)/, valueCell)
@@ -341,26 +339,21 @@ class ParserThread
 
         texts = valueCell.split(/<font face="Arial"><font size=-2>/)[1..-1]
 
-        #        texts.each {|text|
-        #          value += parseSimple(//, /.*(?=<\/font><\/font>.*)/, text) + ' '
-        #        }
-
         value = texts.map! {|text|
           parseSimple(//, /.*(?=<\/font><\/font>.*)/, text)
-        }.join Configuration.innerSeparator
+        }.join Configuration::INNER_SEPARATOR
 
-        #        if valueCell[/<a href/]
-        #          valueCell.gsub! /<a href=.*?>/, ''
-        #          valueCell.gsub! /<\/a>/, ''
-        #        end
-
-        # if there is a link, there is often also an icon (<img>) which has to be removed
-        #        valueCell.gsub! /<img .*?>/, ''
-
-        #        value = valueCell
       else
         value = parseSimple(/VALIGN=TOP>\s*<font face="Arial"><font size=-2>/, /.*/, valueCell)
       end
+
+      # sometimes, it is Decision, sometimes it is Decision Mode
+      # to only have one, all Decision Mode keys are renamed to Decision
+      # there are no laws where boths keys appear at the same time
+      # additionally, clean also the Decision key (is "Decision :")
+      # NB: replacing key[/Decision/] with 'Decision' makes sence indeed, if
+      # key == 'Decision :' ( => key == 'Decision')
+      if key[/Decision mode/] or key[/Decision/] then key = 'Decision' end
       tableData[key] = value
     }
 

@@ -162,7 +162,7 @@ class Saver
 
       # now, write everything to file
       # first: the header row
-      file.puts convertUTF8ToANSI(headerRow.join(Configuration.columnSeparator), 'header row')
+      file.puts convertUTF8ToANSI(headerRow.join(Configuration::COLUMN_SEPARATOR), 'header row')
 
 
       # second: all the rest (data rows)
@@ -171,7 +171,7 @@ class Saver
         headerRow.each { |key|
           line << row[key]
         }
-        line = line.join Configuration.columnSeparator
+        line = line.join Configuration::COLUMN_SEPARATOR
         convertedLine = convertUTF8ToANSI(line, row[Configuration::ID])
         file.puts convertedLine
       }

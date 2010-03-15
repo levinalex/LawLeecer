@@ -42,7 +42,7 @@ class GUI
   # create all the widgets of the window, connect signals and display everything
   def initialize
 
-    window = Gtk::Window.new("Law Leecher #{Configuration.version}")
+    window = Gtk::Window.new("Law Leecher v#{Configuration::VERSION}")
     window.set_border_width 10
     window.set_default_size 1, 1
     window.set_resizable false
@@ -139,7 +139,7 @@ class GUI
           Gtk::Dialog::DESTROY_WITH_PARENT,
           Gtk::MessageDialog::INFO,
           Gtk::MessageDialog::BUTTONS_CLOSE,
-          "#{Core.createInstance.numberOfLaws} Gesetz(e) wurde(n) gefunden, davon konnte(n) #{Core.createInstance.numberOfLaws - Core.createInstance.numberOfResults} Gesetz(e) nicht gelesen werden."
+          "#{Core.createInstance.numberOfLaws} Gesetz(e) wurde(n) gefunden, davon konnte(n) #{Core.createInstance.numberOfLaws - Core.createInstance.numberOfResults} Gesetz(e) nicht gelesen werden oder war(en) leer."
         )
         dialog.run
         dialog.destroy
@@ -190,8 +190,8 @@ class GUI
 
   # function that is called from time to time to update status and progress bar
   def updateWidgets info
-    @progressBar.text = info['progressBarText'] if info.has_key? 'progressBarText'
     @progressBar.set_fraction([@progressBar.fraction + info['progressBarIncrement'], 1].min) if info.has_key? 'progressBarIncrement'
+    @progressBar.text = "#{((@progressBar.fraction * 100) * 1000).floor / 1000.0} %" if info.has_key? 'progressBarIncrement'
     @statusLabel.text = info['status'] if info.has_key? 'status'
 
     while Gtk.events_pending?

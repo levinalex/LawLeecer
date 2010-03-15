@@ -43,22 +43,36 @@ class Core
 
   # the main method, controlling the whole extraction process
   def startProcess
+
+    Configuration.log_default "This is Law Leecher v#{Configuration::VERSION}"
+
+
+    # this method returns also another hash array which is for debugging purposes, only
+    # here, only the first array containing the law IDs is relevant
     lawIDs = Fetcher.retrieveLawIDs()
 
 
-    # remove some duplicate ids here
-    lawIDs.uniq!
+    # remove some duplicate IDs here
+    lawIDs.sort!.uniq!
+
 
     @@numberOfLaws = lawIDs.size
+    Core.createInstance.callback({'status' => "#{@@numberOfLaws} Gesetze gefunden"})
+    Configuration.log_default "#{@@numberOfLaws} unique laws found"
+
 
     laws, timelineTitles, firstboxKeys = Fetcher.retrieveLawContents(lawIDs)
 
-    # due to the threading, there might still be some exact duplicates
-    laws = removeDuplicates laws
 
     @@numberOfResults = laws.size
 
+
+    # sort the laws numerically
+    laws = laws.sort_by {|law| law[Configuration::ID].to_i}
+
+
     Saver.save laws, timelineTitles, firstboxKeys
+
 
     Configuration.log_default 'Finished'
   end
@@ -85,29 +99,8 @@ class Core
 
 
 
-  # getter for the number of results variable
+  # getter for the number of results retrieved during retrieval
   def numberOfResults
     @@numberOfResults
-  end
-
-
-
-
-
-  # removes exact duplicates (about 1% of the whole data comes from duplicate entries)
-  # actually, it removes all entries with the same id regardless of the actual attributes
-  # however, all inspected duplicate tuples have been exact duplicates
-  def removeDuplicates laws
-    alreadyFoundLawIDs = []
-    laws.delete_if { |law|
-      id = law[Configuration::ID]
-      if alreadyFoundLawIDs.include? id
-        true
-      else
-        alreadyFoundLawIDs << id
-        false
-      end
-    }
-    return laws
   end
 end

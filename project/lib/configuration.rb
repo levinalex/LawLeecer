@@ -13,7 +13,7 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY
 # EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# WARRANTIES OF MERCHANTABILITY AND FITNESSs FOR A PARTICULAR PURPOSE ARE
 # DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
 # DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
@@ -44,36 +44,28 @@ class Configuration # and settings
 
 
   # maximum hits per form submit (originally: 99, default: 20)
-  def Configuration.numberOfMaxHitsPerPage
-    1000000
-  end
+  NUMBER_OF_RESULTS_PER_PAGE = 1000000
 
 
 
 
 
   # csv file column separator
-  def Configuration.columnSeparator
-    '#'
-  end
+  COLUMN_SEPARATOR = '#'
 
 
 
 
 
   # inner separator, e.g. for documents
-  def Configuration.innerSeparator
-    ', '
-  end
+  INNER_SEPARATOR = ', '
 
 
 
 
 
   # the text which is put if a key has no value on the website
-  def Configuration.missingEntry
-    '[fehlt]'
-  end
+  MISSING_ENTRY = '[fehlt]'
 
 
 
@@ -137,9 +129,8 @@ class Configuration # and settings
 
 
   # version of the program
-  def Configuration.version
-    '1.3.1'
-  end
+  VERSION = '1.4'
+
 
 
 
@@ -162,7 +153,7 @@ class Configuration # and settings
 
 
   # getter for the log level
-  @@loglevel = Configuration::DEFAULT
+  @@loglevel = DEFAULT
   def Configuration.loglevel
     @@loglevel
   end
@@ -173,7 +164,7 @@ class Configuration # and settings
 
   # print something when being verbose
   def Configuration.log_verbose message
-    print "#{message}\n" if Configuration.loglevel >= Configuration::VERBOSE
+    print "#{message}\n" if Configuration.loglevel >= VERBOSE
   end
 
 
@@ -182,7 +173,7 @@ class Configuration # and settings
 
   # print something when being verbose
   def Configuration.log_default message
-    print "#{message}\n" if Configuration.loglevel >= Configuration::DEFAULT
+    print "#{message}\n" if Configuration.loglevel >= DEFAULT
   end
 
 
