@@ -160,12 +160,12 @@ Install the following packages: \texttt{ruby}, \texttt{ruby-gnome2}. It might be
 To install the packages, type \texttt{sudo apt-get install ruby irb ruby-gnome2 netbeans}.
 
 \subsubsection{Windows}
-Follow these steps to install Law Leecher on Windows (tested on Windows~XP).
+Follow these steps to install Law Leecher on Windows (tested on Windows~XP and Windows~7).
 
 \begin{enumerate}
-\item Download the One-Click Installer from \url{http://rubyinstaller.org/} to install Ruby. Install it under the proposed directory, \texttt{c:\textbackslash ruby}. Accept the wizard's proposals for all other options, but activate the European Keyboard option.
+\item Download the One-Click Installer from \url{http://rubyinstaller.org/} to install Ruby. If you intend to use the GUI, you should choose Ruby 1.8.7, because version 1.9 seems to be incompatible. Install it under the proposed directory (will be about \texttt{c:\textbackslash ruby} or similar). Check all checkboxes the wizard presents to you.
 
-\item Second, install the toolkit which provides the GUI. It's named \textit{GTK+}. Download it from \url{http://prdownloads.sourceforge.net/ruby-gnome2/ruby-gnome2-0.16.0-1-i386-mswin32.exe?download}. When following the wizard, correct the path of the Ruby installation in case that there are special characters at the end of the path string. 
+\item Second, install the toolkit which provides the GUI. It's named \textit{GTK2}. Download it from \url{http://prdownloads.sourceforge.net/ruby-gnome2/ruby-gnome2-0.16.0-1-i386-mswin32.exe?download}. When following the wizard, correct the path of the Ruby installation in case that there are special characters at the end of the path string. 
 \end{enumerate}
 In case of problems, follow the instructions on \url{http://ruby-gnome2.sourceforge.jp/hiki.cgi?Install+Guide+for+Windows}.
 
@@ -271,4 +271,8 @@ The default ruby interpreter is able to run the full program, currently. However
 Multi-threadded programming is hard. One trait of this fact is, that \texttt{puts} does not work always properly. It constists of the writing of the message and a \texttt{\textbackslash n}. If these are separated due to thread scheduling, the output looks odd. Therefore, \texttt{print} is used on all threadded sections which does not create a line break in the end. Instead, the \texttt{\textbackslash n} has to be inserted directly at the message, explicitly.
 
 Furthermore, due to threading, some IDs are dispatched multiple times. Thus, the output would contain exact duplicates (about 1\% of the total number) which has been removed explicitly after retrieving all laws.
+
+\subsubsection{Encoding}
+All source files (*.rb) are encoded in UTF-8 without using the Byter Order Mark (BOM). Ruby~1.9 has problems with files that actually contain non-ASCII characters, such as German umlauts. However, inserting the BOM in the beginning of those (or all) files causes Ruby~1.8.7 installations not to work any more (under Windows at least), since they try to interpret the BOM as code. The workaround is simply to stick to Ruby~1.8.7 where also GTK2 does work.
+
 \end{document}
